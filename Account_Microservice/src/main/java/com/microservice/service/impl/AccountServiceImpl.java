@@ -1,10 +1,13 @@
 package com.microservice.service.impl;
 
 import com.microservice.constants.AccountsConstants;
+import com.microservice.dto.AccountsDto;
 import com.microservice.dto.CustomerDto;
 import com.microservice.entity.Accounts;
 import com.microservice.entity.Customer;
 import com.microservice.exception.CustomerAlreadyExistsException;
+import com.microservice.exception.ResourceNotFoundException;
+import com.microservice.mapper.AccountsMapper;
 import com.microservice.mapper.CustomerMapper;
 import com.microservice.repository.AccountsRepository;
 import com.microservice.repository.CustomerRepository;
@@ -35,6 +38,19 @@ public class AccountServiceImpl implements IAccountService {
         customer.setCreatedBy("Unknown");
         Customer savedCustomer = customerRepository.save(customer);
         accountsRepository.save(createNewAccount(savedCustomer));
+    }
+
+    @Override
+    public CustomerDto fetchAccount(String mobileNumber) {
+        Customer customer = customerRepository.findByMobileNumber(mobileNumber).orElseThrow(
+                () -> new ResourceNotFoundException("Customer", "mobileNumber", mobileNumber)
+        );
+        Accounts accounts = accountsRepository.findByCustomerId(customer.getCustomerId()).orElseThrow(
+                () -> new ResourceNotFoundException("Account", "customerId", customer.getCustomerId().toString())
+        );
+        CustomerDto customerDto = CustomerMapper.mapToCustomerDto(customer, new CustomerDto());
+        customerDto.setAccountsDto(AccountsMapper.mapToAccountsDto(accounts, new AccountsDto()));
+        return customerDto;
     }
 
     private Accounts createNewAccount(Customer customer) {
